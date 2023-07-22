@@ -15,7 +15,7 @@ class MassBody:
     """
     def __init__(self):
         self._m = 0.0    # [kg] mass
-        self._No = 0     # [-] body number
+        self._no = 0     # [-] body number
         self._k = 0.0    # [N/m] spring stiffness
         self._zeta = 0.0 # [-] damping ratio
         self._coupl = np.zeros(0, dtype=int)
@@ -37,8 +37,33 @@ class ForceFunction:
         self._time = []
 
     def set(self, force_def, time, body_no):
-        #!shv continue
         self._body_no = body_no
+        self._force_def = force_def
+        self._P_array = np.zeros(len(time), dtype=float)
+        self._time = time
+
+        # Define force function
+        if force_def["STOP"] < 0.0:
+            _force_stop = time[-1]
+        else:
+            _force_stop = force_def["STOP"]
+
+        _force_start = force_def["START"]
+        if force_def["TYPE"] == "SIN":
+            self._P_array = np.where(
+                (time>=_force_start) & (time<=_force_stop),
+                force_def["P0"]*np.sin(force_def["OMEGA"]*(time-_force_start)),
+                0.0
+            )
+        elif force_def["TYPE"] == "COS":
+            self._P_array = np.where(
+                (time>=_force_start) & (time<=_force_stop),
+                force_def["P0"]*np.cos(force_def["OMEGA"]*(time-_force_start)),
+                0.0
+            )
+        elif force_def["TYPE"] == "RANDOM":
+            raise NotImplementedError("Random force definition is not implemented yet!")
+        return
 
     def __setattr__(self, name, value):
         """
@@ -72,8 +97,7 @@ class ForceFunction:
         if _ierr > 0:
             raise ValueError("Force function definition for body No. "\
                              "{0} is invalid or incomplete.\n No force "\
-                             "will be applied to body No. {0}.".format(self.No))
-
+                             "will be applied to body No. {0}.".format(self._body_no))
 
 
 class InputData:
@@ -111,14 +135,14 @@ class InputData:
                     _sim_active = True
     
                 elif _sim_active and line.startswith("TMAX"):
-                    self.t_max = float(line.split('=')[1])
+                    self._t_max = float(line.split('=')[1])
     
                 elif _sim_active and line.startswith("TSTEP"):
-                    self.t_step = float(line.split('=')[1])
+                    self._t_step = float(line.split('=')[1])
     
                 elif line.startswith("*ENDSIMULATION"):
-                    if self.t_step > 0.0 and self.t_max > 0.0:
-                        self.time = np.arange(0.0, self.t_max, self.t_step)
+                    if self._t_step > 0.0 and self._t_max > 0.0:
+                        self._time = np.arange(0.0, self._t_max, self._t_step)
                     else:
                         raise ValueError("Simulation time settings are not defined")
                     _sim_active = False
@@ -127,11 +151,11 @@ class InputData:
                 elif line.startswith("*BODY"):
                     _body_active = True
                     _act_body = MassBody()
-                    _act_body.No = int(line.split()[1])
+                    _act_body._no = int(line.split()[1])
     
                 elif line.startswith("*ENDBODY"):
-                    if (np.size(_act_body.k) != np.size(_act_body.coupl) or \
-                        np.size(_act_body.zeta) != np.size(_act_body.coupl)):
+                    if (np.size(_act_body._k) != np.size(_act_body._coupl) or \
+                        np.size(_act_body._zeta) != np.size(_act_body._coupl)):
                         raise ValueError(
                             "Coupling parameters for body No. {} are incorrect/"\
                             "incomplete. Please specify for each coupling entity "\

@@ -11,10 +11,10 @@ ZTA=0.05            ** damping ratio
 CPL=0               ** Coupling order (0 - base)
 X0=0.0              ** Initial displacement condition (is relative to spring free x location (XLOC))
 V0=0.0              ** Initial velocity condition
-XLOC=3.0           ** 
+XLOC=0.0           ** 
 *FORCE
 TYPE=COS            ** Force type (SIN,COS,RAND,NONE)
-OMEGA=3.0             ** Eigen frequency of harmonic force
+**OMEGA=3.0             ** Eigen frequency of harmonic force
 P0=1.0              ** Force magnitude (P = P0*sin(omega*t))
 START=0.3           ** Start time of force application
 STOP=2.0           ** End time of force application (-1 - end time equalts to TMAX)
@@ -28,7 +28,7 @@ ZTA=0.02
 CPL=1              ** Body 2 is coupled to body 1 (with spring and damper)
 X0=0.0
 V0=0.0
-XLOC=4.0
+XLOC=0.0
 *FORCE
 TYPE=NONE           ** With type NONE all other force parameters are irrelevant
 OMEGA=0.0
