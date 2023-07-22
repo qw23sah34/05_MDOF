@@ -1,6 +1,8 @@
 """
 @author: Pavlo Shvetsov
 e-mail: shvetsov.pavlo@gmail.com
+
+Initialisation module. Reads, parses and prepares simulation data. 
 """
 from typing import Any
 import numpy as np
@@ -14,16 +16,16 @@ class MassBody:
       - all couplings defined for that body (coupling = spring-damper)
     """
     def __init__(self):
-        self._m = 0.0    # [kg] mass
-        self._no = 0     # [-] body number
-        self._k = 0.0    # [N/m] spring stiffness
-        self._zeta = 0.0 # [-] damping ratio
-        self._coupl = np.zeros(0, dtype=int)
+        self.m = 0.0    # [kg] mass
+        self.No = 0     # [-] body number
+        self.k = 0.0    # [N/m] spring stiffness
+        self.zeta = 0.0 # [-] damping ratio
+        self.coupl = np.zeros(0, dtype=int)
         self._x0 = 0.0   # [m] initial displacement
         self._v0 = 0.0   # [m/s] initial velocity
-        self._P = []     # [N] force function
-        self._c = 0.0    # [Ns/m] damping coefficient
-        self._xloc = 0.0 # [m] x position, at which spring of the body has no tension
+        self.P = []     # [N] force function
+        self.c = 0.0    # [Ns/m] damping coefficient
+        self.xloc = 0.0 # [m] x position, at which spring of the body has no tension
 
 
 class ForceFunction:
@@ -38,33 +40,36 @@ class ForceFunction:
 
     def set(self, force_def, time, body_no):
         self._body_no = body_no
+        self._time = time
         self._force_def = force_def
         self._P_array = np.zeros(len(time), dtype=float)
-        self._time = time
 
         # Define force function
-        if force_def["STOP"] < 0.0:
-            _force_stop = time[-1]
+        if self._force_def["STOP"] < 0.0:
+            _t_stop = time[-1]
         else:
-            _force_stop = force_def["STOP"]
+            _t_stop = self._force_def["STOP"]
 
-        _force_start = force_def["START"]
-        if force_def["TYPE"] == "SIN":
+        _t_start = self._force_def["START"]
+        if self._force_def["TYPE"] == "SIN":
             self._P_array = np.where(
-                (time>=_force_start) & (time<=_force_stop),
-                force_def["P0"]*np.sin(force_def["OMEGA"]*(time-_force_start)),
+                (time>=_t_start) & (time<=_t_stop),
+                self._force_def["P0"]*np.sin(self._force_def["OMEGA"]*(time-_t_start)),
                 0.0
             )
         elif force_def["TYPE"] == "COS":
             self._P_array = np.where(
-                (time>=_force_start) & (time<=_force_stop),
-                force_def["P0"]*np.cos(force_def["OMEGA"]*(time-_force_start)),
+                (time>=_t_start) & (time<=_t_stop),
+                self._force_def["P0"]*np.cos(self._force_def["OMEGA"]*(time-_t_start)),
                 0.0
             )
         elif force_def["TYPE"] == "RANDOM":
             raise NotImplementedError("Random force definition is not implemented yet!")
         return
 
+    def get(self, t):
+        return np.interp(t, self._time, self._P_array)
+    
     def __setattr__(self, name, value):
         """
         Check the correctness of force definition dictionary.
@@ -84,14 +89,28 @@ class ForceFunction:
                     value["START"] = 0.0
                     print("Force start time for force applied to body No.{} "\
                           "was not specified. Setting it to 0".format(self._body_no))
+                else:
+                    if not (value["START"] >= self._time[0] and 
+                            value["START"] <= self._time[-1]):
+                        raise ValueError("Force start time for body No.{} lies "\
+                                         "outside simulation time span"\
+                                         "".format(self._body_no))
+                
                 if not "STOP" in value:
                     value["STOP"] = -1.0
                     print("Force end time for force applied to body No.{} "\
                           "was not specified. Setting it to simulation total "\
                           "time".format(self._body_no))
+                else:
+                    if not (value["STOP"] >= self._time[0] and 
+                            value["STOP"] <= self._time[-1]):
+                        raise ValueError("Force end time for body No.{} lies "\
+                                         "outside simulation time span"\
+                                         "".format(self._body_no))
+                    
             elif value["TYPE"] == "RANDOM":
-                #!shv to be implemented
-                raise ValueError("Random force definition is not implemented yet!")
+                raise NotImplementedError("Random force definition is not "\
+                                          "implemented yet!")
         else:
             _ierr = 1
         if _ierr > 0:
@@ -110,6 +129,7 @@ class InputData:
         _body_active = False
         _force_active = False
         self._bodies = []
+        self.n_bodies = 0
 
         # First body is always base.
         self._bodies.append(MassBody())
@@ -142,7 +162,8 @@ class InputData:
     
                 elif line.startswith("*ENDSIMULATION"):
                     if self._t_step > 0.0 and self._t_max > 0.0:
-                        self._time = np.arange(0.0, self._t_max, self._t_step)
+                        self.time = np.arange(0.0, self._t_max, self._t_step)
+                        self.n_tsteps = np.size(self.time)
                     else:
                         raise ValueError("Simulation time settings are not defined")
                     _sim_active = False
@@ -151,17 +172,18 @@ class InputData:
                 elif line.startswith("*BODY"):
                     _body_active = True
                     _act_body = MassBody()
-                    _act_body._no = int(line.split()[1])
+                    _act_body.No = int(line.split()[1])
     
                 elif line.startswith("*ENDBODY"):
-                    if (np.size(_act_body._k) != np.size(_act_body._coupl) or \
-                        np.size(_act_body._zeta) != np.size(_act_body._coupl)):
+                    if (np.size(_act_body.k) != np.size(_act_body.coupl) or \
+                        np.size(_act_body.zeta) != np.size(_act_body.coupl)):
                         raise ValueError(
                             "Coupling parameters for body No. {} are incorrect/"\
                             "incomplete. Please specify for each coupling entity "\
                             "its own ZTA or STIFF, even if it is zero."\
                             .format(_act_body.No))
-                    _act_body.c = _act_body.zeta*2.0*np.sqrt(_act_body.k*_act_body.m)
+                    _act_body.c = _act_body.zeta*2.0*np.sqrt(_act_body.k
+                                                             *_act_body.m)
                     _body_active = False
                     self._bodies.append(_act_body)
     
@@ -188,10 +210,10 @@ class InputData:
                                              "for body {}".format(_act_body.No))
                         
                 elif _body_active and line.startswith("X0"):
-                    _act_body.x0 = float(line.split("=")[1])
+                    _act_body._x0 = float(line.split("=")[1])
     
                 elif _body_active and line.startswith("V0"):
-                    _act_body.v0 = float(line.split("=")[1])
+                    _act_body._v0 = float(line.split("=")[1])
     
                 elif _body_active and line.startswith("XLOC"):
                     _act_body.xloc = float(line.split("=")[1])
@@ -203,30 +225,111 @@ class InputData:
                 elif line.startswith("*ENDFORCE"):
                     _act_body.P = ForceFunction()
                     _act_body.P.set(_force_def, self.time, _act_body.No)
-                    forceDef = {}
-                    forceActive = False
-                elif forceActive and line.startswith("TYPE"):
-                    forceDef["TYPE"] = line.split("=")[1].strip()
-                elif forceActive and line.startswith("OMEGA"):
-                    forceDef["OMEGA"] = float(line.split("=")[1])
-                elif forceActive and line.startswith("P0"):
-                    forceDef["P0"] = float(line.split("=")[1])
-                elif forceActive and line.startswith("START"):
-                    forceDef["START"] = float(line.split("=")[1])
-                    if not (forceDef["START"] >= time[0] and forceDef["START"] <= time[-1]):
-                        raise ValueError("Force start time for body No.{} lies "\
-                                         "outside simulation time span".format(actBody.No))
-                elif forceActive and line.startswith("STOP"):
-                    forceDef["STOP"] = float(line.split("=")[1])
-                    if not (forceDef["STOP"] >= time[0] and forceDef["STOP"] <= time[-1]):
-                        raise ValueError("Force end time for body No.{} lies "\
-                                         "outside simulation time span".format(actBody.No))
+                    _force_def = {}
+                    _force_active = False
+                elif _force_active and line.startswith("TYPE"):
+                    _force_def["TYPE"] = line.split("=")[1].strip()
+
+                elif _force_active and line.startswith("OMEGA"):
+                    _force_def["OMEGA"] = float(line.split("=")[1])
+
+                elif _force_active and line.startswith("P0"):
+                    _force_def["P0"] = float(line.split("=")[1])
+
+                elif _force_active and line.startswith("START"):
+                    _force_def["START"] = float(line.split("=")[1])
+                    
+                elif _force_active and line.startswith("STOP"):
+                    _force_def["STOP"] = float(line.split("=")[1])
+                    
         _file.close()
 
-    
-
     def couple_bodies(self):
-        pass
+        """ 
+        Couple bodies and calculate coupled mass, 
+        stiffness and damping matrices
+        """
+        _nbodies = len(self._bodies)
+        self._M = np.zeros((_nbodies,_nbodies), dtype=float)
+        self._C = np.zeros((_nbodies,_nbodies), dtype=float)
+        self._K = np.zeros((_nbodies,_nbodies), dtype=float)
+    
+        # 0 mass_body is the base. Numeration of mass bodies starts at 1.
+        self._relations = np.full((_nbodies,_nbodies), False, dtype=bool)
+        _relations_C = np.zeros((_nbodies,_nbodies), dtype=float)
+        _relations_K = np.zeros((_nbodies,_nbodies), dtype=float)
+        for i, body in enumerate(self._bodies):
+            # _relations[i,k]
+            #            ^ - body number
+            # _relations[i,k]
+            #              ^ - number of bodies coupled with body i
+            for i_con, k in enumerate(body.coupl):
+                self._relations[i,k] = True
+                self._relations[k,i] = True
+                _relations_C[i,k] = body.c[i_con]
+                _relations_C[k,i] = body.c[i_con]
+                _relations_K[i,k] = body.k[i_con]
+                _relations_K[k,i] = body.k[i_con]
+        
+        # Loop over all moving bodies
+        for i, body in enumerate(self._bodies):
+            # Mass matrix can be set up directly. Inertia forces 
+            # only affect their own masses.
+            self._M[i,i] = body.m
+            if not any(self._relations[i,:]):
+                raise ValueError("There is no coupling for body {0}."\
+                                 "Please check input data".format(body.No))
+        
+            # Loop over all bodies to determine coupling relations
+            for k in range(i, len(_nbodies)):
+                if i == k:
+                    for i_con, coupled in enumerate(self._relations[i,:]):
+                        if coupled:
+                            self._C[i,k] = self._C[i,k] + _relations_C[i,i_con]
+                            self._K[i,k] = self._K[i,k] + _relations_K[i,i_con]
+                else:
+                    for i_con, coupled in enumerate(self._relations[i,:]):
+                        
+                        # ic = 0 is base. Base can not move. Ignore
+                        if i_con != 0 and coupled:
+                            self._C[i,k] = self._C[i,k] + (-_relations_C[i,i_con])
+                            self._K[i,k] = self._K[i,k] + (-_relations_K[i,i_con])
+        
+        # Delete base from bodies. Double check if the body to 
+        # delete is the mass body.
+        if self._bodies[0].No == 0:
+            self._M = self._M[1:,1:]
+            self._C = self._C[1:,1:]
+            self._K = self._K[1:,1:]
+            del self._bodies[0]
+            self.n_bodies = len(self._bodies)
+        
+        # Mirror the bottom half
+        for i in range(np.size(self._C,0)):
+            for k in range(i, np.size(self._C,1)):
+                if i != k:
+                    self._C[k,i] = self._C[i,k]
+                    self._K[k,i] = self._K[i,k]
+
+    def get_init_cond(self):
+        """
+        Return initial conditions for all bodies.
+        """
+        v_0 = np.zeros(self.n_bodies, dtype=float)
+        x_0 = np.zeros(self.n_bodies, dtype=float)
+        for i_body, body in enumerate(self._bodies):
+            v_0[i_body] = body._v0
+            x_0[i_body] = body._x0
+        return v_0, x_0
+    
+    def get_force_array(self):
+        """
+        Return array with force functions for all bodies
+        """
+        P_arr = np.array([])
+        for i_body, body in enumerate(self._bodies):
+            P_arr[i_body] = body.P
+        return P_arr
 
     def __getattribute__(self, name):
         raise AttributeError("The attribute {} does not exist",format(name))
