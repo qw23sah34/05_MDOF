@@ -159,6 +159,9 @@ class InputData:
     
                 elif _sim_active and line.startswith("TSTEP"):
                     self.t_step = float(line.split('=')[1])
+
+                elif _sim_active and line.startswith("ANISTYLE"):
+                    self.full_animation = bool(line.split('=')[1])
     
                 elif line.startswith("*ENDSIMULATION"):
                     if self.t_step > 0.0 and self._t_max > 0.0:
@@ -258,12 +261,14 @@ class InputData:
         self._relations = np.full((_nbodies,_nbodies), False, dtype=bool)
         _relations_C = np.zeros((_nbodies,_nbodies), dtype=float)
         _relations_K = np.zeros((_nbodies,_nbodies), dtype=float)
+        self.n_ds = 0
         for i, body in enumerate(self.bodies):
             # _relations[i,k]
             #            ^ - body number
             # _relations[i,k]
             #              ^ - number of bodies coupled with body i
             for i_con, k in enumerate(body.coupl):
+                self.n_ds += 1
                 self._relations[i,k] = True
                 self._relations[k,i] = True
                 _relations_C[i,k] = body.c[i_con]
