@@ -22,6 +22,7 @@ Disclaimer:
 import numpy as np
 from mod.initialisation import InputData
 from mod.rungekutta4 import RungeKutta4
+from mod.visualisation import animate_results
 
 def main():
     
@@ -38,10 +39,35 @@ def main():
      # [:,:,0] - velocity, [:,:,1] - displacement
     Y = np.zeros([inp_data.n_tsteps,inp_data.n_bodies,2], dtype=float)
 
+    # Set initial conditions. Initial displacements are defined relative to 
+    # spring tension-free position (which is on body.xloc).
     Y[0,:,0], Y[0,:,1] = inp_data.get_init_cond()
     P_arr = inp_data.get_force_array()
 
+    # Initialise numerical integrator.
+    RK4 = RungeKutta4(P_arr, inp_data.M, inp_data.C, inp_data.K, inp_data.t_step)
 
+    # Solve the problem for each time step, starting from initial conditions 
+    # at t=0. The equation of motion for a single body M*x'' + C*x' + K*x = F(t)
+    # Defining this equation for every single body will result in a system
+    # of coupled equations. Mass, damping and stifness matrices have already
+    # been coupled. The system is [M](x)'' + [C](x)' + [K](x) = (F(t))
+    # with [M], [C], [K] - mass, damping and stifness matrices respectively,
+    # (x)'', (x)', (x) - acceleration, velocity and displacement vectors wuth
+    # (n_bodies) dimension. After substitution y = x', reforming and appliying
+    # forward step numerical integration scheme (!shv check), one obtain:
+    for i, t in enumerate(inp_data.time):
+        if i > 0:
+            Y[i,:,:] = Y[i-1,:,:] + RK4.evaluate(Y[i-1,:,0], Y[i-1,:,1], t)
+            
+    # Add initial bodies coordinates.
+    for i_body, body in enumerate(inp_data.bodies):
+        Y[:,i_body,1] = Y[:,i_body,1] + body.xloc
+
+    # Create animation
+    animation = animate_results(inp_data, Y[:,:,1])
+    animation.save('anim.gif')
+    print("The animation is done!")
 
 if __name__ == "__main__":
     main()

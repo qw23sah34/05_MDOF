@@ -33,7 +33,7 @@ class RungeKutta4:
         
         _x2 = x + _y1*self._dt/2.0
         _y2 = y + _F1*self._dt/2.0
-        _t2 = t + self.dt/2.0
+        _t2 = t + self._dt/2.0
         _F2 = self.F(_x2, _y2, _t2)
         
         _x3 = x + _y2*self._dt/2.0
@@ -46,14 +46,14 @@ class RungeKutta4:
         _t4 = t + self._dt
         _F4 = self.F(_x4, _y4, _t4)
         
-        x_ip1 = self.dt/6.0 * (_y1 + 2*_y2 + 2*_y3 + _y4)
-        y_ip1 = self.dt/6.0 * (_F1 + 2*_F2 + 2*_F3 + _F4)
+        x_ip1 = self._dt/6.0 * (_y1 + 2*_y2 + 2*_y3 + _y4)
+        y_ip1 = self._dt/6.0 * (_F1 + 2*_F2 + 2*_F3 + _F4)
         return np.transpose(np.array([y_ip1, x_ip1]))
     
     def F(self, x, y, t):
         # Compute the force vector at actual time
         P = np.zeros(self._nbodies)
         for i_body in range(self._nbodies):
-            P[i_body] = self.P[i_body].get(t)
+            P[i_body] = self._P[i_body].get(t)
 
-        return self.M_inv.dot(P - self.K.dot(x) - self.C.dot(y))
+        return self._M_inv.dot(P - self._K.dot(x) - self._C.dot(y))

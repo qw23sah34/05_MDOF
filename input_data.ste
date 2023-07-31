@@ -14,7 +14,7 @@ V0=0.0              ** Initial velocity condition
 XLOC=0.0           ** 
 *FORCE
 TYPE=COS            ** Force type (SIN,COS,RAND,NONE)
-**OMEGA=3.0             ** Eigen frequency of harmonic force
+OMEGA=3.0             ** Eigen frequency of harmonic force
 P0=1.0              ** Force magnitude (P = P0*sin(omega*t))
 START=0.3           ** Start time of force application
 STOP=2.0           ** End time of force application (-1 - end time equalts to TMAX)

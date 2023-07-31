@@ -43,7 +43,6 @@ class ForceFunction:
         self._time = time
         self._force_def = force_def
         self._P_array = np.zeros(len(time), dtype=float)
-
         # Define force function
         if self._force_def["STOP"] < 0.0:
             _t_stop = time[-1]
@@ -74,7 +73,8 @@ class ForceFunction:
         """
         Check the correctness of force definition dictionary.
         """
-        if name != "force_def":
+        super().__setattr__(name, value)
+        if name != "_force_def":
             return
         # Check if force is defined properly
         _ierr = 0
@@ -128,11 +128,11 @@ class InputData:
         _sim_active = False
         _body_active = False
         _force_active = False
-        self._bodies = []
         self.n_bodies = 0
+        self.bodies = []
 
         # First body is always base.
-        self._bodies.append(MassBody())
+        self.bodies.append(MassBody())
         _force_def = {}
         try:
             _file = open(filename, 'r')
@@ -158,11 +158,11 @@ class InputData:
                     self._t_max = float(line.split('=')[1])
     
                 elif _sim_active and line.startswith("TSTEP"):
-                    self._t_step = float(line.split('=')[1])
+                    self.t_step = float(line.split('=')[1])
     
                 elif line.startswith("*ENDSIMULATION"):
-                    if self._t_step > 0.0 and self._t_max > 0.0:
-                        self.time = np.arange(0.0, self._t_max, self._t_step)
+                    if self.t_step > 0.0 and self._t_max > 0.0:
+                        self.time = np.arange(0.0, self._t_max, self.t_step)
                         self.n_tsteps = np.size(self.time)
                     else:
                         raise ValueError("Simulation time settings are not defined")
@@ -185,7 +185,7 @@ class InputData:
                     _act_body.c = _act_body.zeta*2.0*np.sqrt(_act_body.k
                                                              *_act_body.m)
                     _body_active = False
-                    self._bodies.append(_act_body)
+                    self.bodies.append(_act_body)
     
                 elif _body_active and line.startswith("MASS"):
                     _act_body.m = float(line.split("=")[1])
@@ -249,16 +249,16 @@ class InputData:
         Couple bodies and calculate coupled mass, 
         stiffness and damping matrices
         """
-        _nbodies = len(self._bodies)
-        self._M = np.zeros((_nbodies,_nbodies), dtype=float)
-        self._C = np.zeros((_nbodies,_nbodies), dtype=float)
-        self._K = np.zeros((_nbodies,_nbodies), dtype=float)
+        _nbodies = len(self.bodies)
+        self.M = np.zeros((_nbodies,_nbodies), dtype=float)
+        self.C = np.zeros((_nbodies,_nbodies), dtype=float)
+        self.K = np.zeros((_nbodies,_nbodies), dtype=float)
     
         # 0 mass_body is the base. Numeration of mass bodies starts at 1.
         self._relations = np.full((_nbodies,_nbodies), False, dtype=bool)
         _relations_C = np.zeros((_nbodies,_nbodies), dtype=float)
         _relations_K = np.zeros((_nbodies,_nbodies), dtype=float)
-        for i, body in enumerate(self._bodies):
+        for i, body in enumerate(self.bodies):
             # _relations[i,k]
             #            ^ - body number
             # _relations[i,k]
@@ -272,44 +272,44 @@ class InputData:
                 _relations_K[k,i] = body.k[i_con]
         
         # Loop over all moving bodies
-        for i, body in enumerate(self._bodies):
+        for i, body in enumerate(self.bodies):
             # Mass matrix can be set up directly. Inertia forces 
             # only affect their own masses.
-            self._M[i,i] = body.m
+            self.M[i,i] = body.m
             if not any(self._relations[i,:]):
                 raise ValueError("There is no coupling for body {0}."\
                                  "Please check input data".format(body.No))
         
             # Loop over all bodies to determine coupling relations
-            for k in range(i, len(_nbodies)):
+            for k in range(i, _nbodies):
                 if i == k:
                     for i_con, coupled in enumerate(self._relations[i,:]):
                         if coupled:
-                            self._C[i,k] = self._C[i,k] + _relations_C[i,i_con]
-                            self._K[i,k] = self._K[i,k] + _relations_K[i,i_con]
+                            self.C[i,k] = self.C[i,k] + _relations_C[i,i_con]
+                            self.K[i,k] = self.K[i,k] + _relations_K[i,i_con]
                 else:
                     for i_con, coupled in enumerate(self._relations[i,:]):
                         
                         # ic = 0 is base. Base can not move. Ignore
                         if i_con != 0 and coupled:
-                            self._C[i,k] = self._C[i,k] + (-_relations_C[i,i_con])
-                            self._K[i,k] = self._K[i,k] + (-_relations_K[i,i_con])
+                            self.C[i,k] = self.C[i,k] + (-_relations_C[i,i_con])
+                            self.K[i,k] = self.K[i,k] + (-_relations_K[i,i_con])
         
         # Delete base from bodies. Double check if the body to 
         # delete is the mass body.
-        if self._bodies[0].No == 0:
-            self._M = self._M[1:,1:]
-            self._C = self._C[1:,1:]
-            self._K = self._K[1:,1:]
-            del self._bodies[0]
-            self.n_bodies = len(self._bodies)
+        if self.bodies[0].No == 0:
+            self.M = self.M[1:,1:]
+            self.C = self.C[1:,1:]
+            self.K = self.K[1:,1:]
+            del self.bodies[0]
+            self.n_bodies = len(self.bodies)
         
         # Mirror the bottom half
-        for i in range(np.size(self._C,0)):
-            for k in range(i, np.size(self._C,1)):
+        for i in range(np.size(self.C,0)):
+            for k in range(i, np.size(self.C,1)):
                 if i != k:
-                    self._C[k,i] = self._C[i,k]
-                    self._K[k,i] = self._K[i,k]
+                    self.C[k,i] = self.C[i,k]
+                    self.K[k,i] = self.K[i,k]
 
     def get_init_cond(self):
         """
@@ -317,7 +317,7 @@ class InputData:
         """
         v_0 = np.zeros(self.n_bodies, dtype=float)
         x_0 = np.zeros(self.n_bodies, dtype=float)
-        for i_body, body in enumerate(self._bodies):
+        for i_body, body in enumerate(self.bodies):
             v_0[i_body] = body._v0
             x_0[i_body] = body._x0
         return v_0, x_0
@@ -326,12 +326,12 @@ class InputData:
         """
         Return array with force functions for all bodies
         """
-        P_arr = np.array([])
-        for i_body, body in enumerate(self._bodies):
-            P_arr[i_body] = body.P
+        P_arr = []
+        for body in self.bodies:
+            P_arr.append(body.P)
         return P_arr
 
-    def __getattribute__(self, name):
-        raise AttributeError("The attribute {} does not exist",format(name))
+    def __getattr__(self, name):
+        raise AttributeError("The attribute {} does not exist".format(name))
 
 
