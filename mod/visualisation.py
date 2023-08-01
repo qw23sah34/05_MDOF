@@ -18,7 +18,7 @@ class AnimatedBodies:
                       "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan"]
     _n_colors = len(_artist_colors)
     _rect_width = 0.15
-    _rect_height = 0.01
+    _rect_height = 0.02
     _ds_line_width = 3.0
     _x_offset = -0.5*_rect_width
     _y_offset = -0.5*_rect_height
@@ -69,9 +69,9 @@ class AnimatedBodies:
                 # conform with python array numeration.
                 self._ds_cpl.append([i_body, cpl-1])
                 # Define x position of the damped string
-                self._ds_xpos.append(
-                    self._ds_body_width/2.0 + self._ds_body_width*len(self._ds_xpos)
-                )
+                self._ds_xpos.append(-self._rect_width/2.0 
+                                     + self._ds_body_width/2.0 
+                                     + self._ds_body_width*len(self._ds_xpos))
 
                 # Initialise an artist for each damped spring body (dspring).
                 self._ds_artist.append(
@@ -81,12 +81,13 @@ class AnimatedBodies:
                 )
 
         # Create legend for left graph. It is static and not an artist
-        axl.legend(self._m_artist, 
-                   list(r'$M_{} = {:4.1f}m$'.format(i_body+1, body.m/min_mass) 
-                        for i_body, bodies in enumerate(inp_data.bodies)), 
-                   title=r'$m = {:4.1f} kg$'.format(min_mass), 
-                   loc='lower left'
+        leg = axl.legend(self._m_artist, 
+                         list(r'$M_{} = {:4.1f}m$'.format(i_body+1, body.m/min_mass) 
+                              for i_body, body in enumerate(inp_data.bodies)), 
+                         title=r'$m = {:4.1f} kg$'.format(min_mass), 
+                         loc='lower left'
         )
+        leg.set_zorder(999)
 
         # --------------------- Initialise right subplot --------------------- #
         self._l_artist = []
@@ -121,20 +122,17 @@ class AnimatedBodies:
         coupl_nr = self._ds_cpl[i_ds][1]
         if coupl_nr < 0:
             y2 = 0.0
-            #!shv continue
         else:
             y2 = self._Y[i,coupl_nr]
 
         if self._full:
             N = 20
             x = np.zeros(N) + self._ds_xpos[i_ds]
-            x[7:13] = self._ds_body_width/2.0 * (-1)**np.arange(6)
-            
+            x[7:13] += self._ds_body_width/2.0 * (-1)**np.arange(6)
             y = np.linspace(y1, y2, N)
             return x, y
         else:
             x = self._ds_xpos[i_ds]
-            y1
             return [x, x], [y1,y2]
 
 
@@ -157,7 +155,7 @@ class AnimatedBodies:
 
         # Update all connection artists.
         for i_body, con in enumerate(self._con_artist):
-            con.xy1 = 0.0, self._Y[i,i_body]
+            con.xy1 = self._rect_width/2.0, self._Y[i,i_body]
             con.xy2 = self._time[i], self._Y[i,i_body]
 
         # Update time artist

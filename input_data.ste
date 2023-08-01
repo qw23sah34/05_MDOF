@@ -1,23 +1,24 @@
 *SIMULATION
 TMAX=3.0           ** Simulation end time
 TSTEP=0.1          ** Simulation step
+ANISTYLE=1		   ** Animation style of damper/springs (1-full, 0-simplified)
 *ENDSIMULATION
 
 ** Maximum number of bodies is 10, due to color limitation
 *BODY 1
-MASS=2.345            ** Mass
+MASS=2.345          ** Mass
 STIFF=2.0           ** Spring stiffness. With multimple coupling, multiple values correspond coupling order (see CPL=)
-ZTA=0.05            ** damping ratio
-CPL=0               ** Coupling order (0 - base)
+ZTA=0.05            ** Damping ratio
+CPL=0               ** Coupling order (0 - base). Shows to which bodies actual body is coupled.
 X0=0.0              ** Initial displacement condition (is relative to spring free x location (XLOC))
 V0=0.0              ** Initial velocity condition
-XLOC=0.0           ** 
+XLOC=0.0            ** Spring stress-free position.
 *FORCE
-TYPE=COS            ** Force type (SIN,COS,RAND,NONE)
-OMEGA=3.0             ** Eigen frequency of harmonic force
+TYPE=COS            ** Force type (SIN,COS,NONE)
+OMEGA=3.0           ** Eigen frequency of harmonic force
 P0=1.0              ** Force magnitude (P = P0*sin(omega*t))
 START=0.3           ** Start time of force application
-STOP=2.0           ** End time of force application (-1 - end time equalts to TMAX)
+STOP=2.0            ** End time of force application (-1 - end time equals to TMAX)
 *ENDFORCE
 *ENDBODY 1
 
@@ -25,15 +26,33 @@ STOP=2.0           ** End time of force application (-1 - end time equalts to TM
 MASS=1.0
 STIFF=4.5
 ZTA=0.02
-CPL=1              ** Body 2 is coupled to body 1 (with spring and damper)
+CPL=1
 X0=0.0
 V0=0.0
 XLOC=0.0
 *FORCE
-TYPE=NONE           ** With type NONE all other force parameters are irrelevant
+TYPE=NONE
 OMEGA=0.0
 P0=0.0
 START=0.0
 STOP=-0.0
 *ENDFORCE
 *ENDBODY 2
+
+*BODY 3
+MASS=1.0
+STIFF=1.0
+ZTA=0.02
+CPL=2
+X0=0.0
+V0=0.0
+XLOC=0.0
+*FORCE
+TYPE=NONE
+OMEGA=0.0
+P0=0.0
+START=0.0
+STOP=-0.0
+*ENDFORCE
+*ENDBODY 3
+

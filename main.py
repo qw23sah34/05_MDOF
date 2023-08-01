@@ -33,7 +33,7 @@ def main():
     inp_data = InputData(filename)
 
     # Couple matrices.
-    inp_data.couple_bodies()
+    inp_data.couple_bodies(),
 
     # Allocate result matrix.
      # [:,:,0] - velocity, [:,:,1] - displacement
