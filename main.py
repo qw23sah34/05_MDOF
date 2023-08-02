@@ -1,6 +1,7 @@
 """
 @author Pavlo Shvetsov
 e-mail: shvetsov.pavlo@gmail.com
+License: CC0
 
 Description:
     The programm simulates oscillations of multi degree of freedom system (MDOF).
