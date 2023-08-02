@@ -7,6 +7,7 @@ Stores class definitions required for animation. Contains animation main functio
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.gridspec as gridspec
 from matplotlib.patches import ConnectionPatch
 
 class AnimatedBodies:
@@ -18,11 +19,9 @@ class AnimatedBodies:
                       "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan"]
     _n_colors = len(_artist_colors)
     _rect_width = 0.15
-    _rect_height = 0.02
     _ds_line_width = 3.0
     _x_offset = -0.5*_rect_width
-    _y_offset = -0.5*_rect_height
-
+    
     # Determines the layering order. Higher order will be displayed over others.
     _m_layer = 100.0
     _con_layer = 50.0
@@ -30,6 +29,8 @@ class AnimatedBodies:
 
     def __init__(self, fig, axl, axr, inp_data, Y):
         self._full = inp_data.full_animation
+        self._rect_height = (Y[:,:].max() - Y[:,:].min())*0.03
+        self._y_offset = -0.5*self._rect_height
         self._ds_body_width = self._rect_width/inp_data.n_ds
         self._Y = Y
         self._time = inp_data.time
@@ -166,12 +167,17 @@ def animate_results(inp_data, Y):
     """
     Creates and returns animation based on the simulation results and user input
     """
-    fig, (ax1, ax2) = plt.subplots(1,2)
+    fig = plt.figure(tight_layout=True, figsize=(16,9))
+    gs = gridspec.GridSpec(1, 2)
+    gs.set_width_ratios((1,5))
+    ax1 = fig.add_subplot(gs[0,0])
+    ax2 = fig.add_subplot(gs[0,1])
+
     anibodies = AnimatedBodies(fig, ax1, ax2, inp_data, Y)
 
     # Since we are not using blit option, we do not need to define init_func.
     # Not very efficient, but will do for the sake of code clearness(?). 
     anim = animation.FuncAnimation(fig, anibodies.update, 
-                                   frames=inp_data.n_tsteps, interval = 400, 
+                                   frames=inp_data.n_tsteps, interval = 70, 
                                    blit=False, repeat=True)
     return anim

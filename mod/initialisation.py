@@ -165,7 +165,8 @@ class InputData:
     
                 elif line.startswith("*ENDSIMULATION"):
                     if self.t_step > 0.0 and self._t_max > 0.0:
-                        self.time = np.arange(0.0, self._t_max, self.t_step)
+                        self.time = np.arange(0.0, self._t_max+self.t_step, 
+                                              self.t_step)
                         self.n_tsteps = np.size(self.time)
                     else:
                         raise ValueError("Simulation time settings are not defined")
@@ -271,10 +272,10 @@ class InputData:
                 self.n_ds += 1
                 self._relations[i,k] = True
                 self._relations[k,i] = True
-                _relations_C[i,k] = body.c[i_con]
-                _relations_C[k,i] = body.c[i_con]
-                _relations_K[i,k] = body.k[i_con]
-                _relations_K[k,i] = body.k[i_con]
+                _relations_C[i,k] = _relations_C[i,k] + body.c[i_con]
+                _relations_C[k,i] = _relations_C[k,i] + body.c[i_con]
+                _relations_K[i,k] = _relations_K[i,k] + body.k[i_con]
+                _relations_K[k,i] = _relations_K[k,i] + body.k[i_con]
         
         # Loop over all moving bodies
         for i, body in enumerate(self.bodies):
@@ -286,19 +287,12 @@ class InputData:
                                  "Please check input data".format(body.No))
         
             # Loop over all bodies to determine coupling relations
-            for k in range(i, _nbodies):
-                if i == k:
-                    for i_con, coupled in enumerate(self._relations[i,:]):
-                        if coupled:
-                            self.C[i,k] = self.C[i,k] + _relations_C[i,i_con]
-                            self.K[i,k] = self.K[i,k] + _relations_K[i,i_con]
-                else:
-                    for i_con, coupled in enumerate(self._relations[i,:]):
-                        
-                        # ic = 0 is base. Base can not move. Ignore
-                        if i_con != 0 and coupled:
-                            self.C[i,k] = self.C[i,k] + (-_relations_C[i,i_con])
-                            self.K[i,k] = self.K[i,k] + (-_relations_K[i,i_con])
+            for i_con, coupled in enumerate(self._relations[i,:]):
+                if coupled:
+                    self.C[i,i] = self.C[i,i] + _relations_C[i,i_con]
+                    self.K[i,i] = self.K[i,i] + _relations_K[i,i_con]
+                    self.C[i,i_con] = self.C[i,i_con] + (-_relations_C[i,i_con])
+                    self.K[i,i_con] = self.K[i,i_con] + (-_relations_K[i,i_con])
         
         # Delete base from bodies. Double check if the body to 
         # delete is the mass body.
