@@ -8,9 +8,8 @@ Contains integration function body.
 import numpy as np
 
 class RungeKutta4:
-    """
-    RK4 numerical integrator class.
-    """
+    """ RK4 numerical integrator class."""
+
     def __init__(self, P, M, C, K, dt):
         self._M_inv = np.linalg.inv(M) # inverse of mass matrix
         self._C = C # damping matrix
@@ -20,9 +19,7 @@ class RungeKutta4:
         self._nbodies = np.size(M,1)
 
     def evaluate(self, y, x, t):
-        """ 
-        Evaluating the Runge-Kutta-4 step 
-        """
+        """ Evaluating the Runge-Kutta-4 step """
         
         # y[:] - velocities of all body masses
         # x[:] - displacement of all body masses
@@ -51,7 +48,7 @@ class RungeKutta4:
         return np.transpose(np.array([y_ip1, x_ip1]))
     
     def F(self, x, y, t):
-        # Compute the force vector at actual time
+        """ Compute the force vector at actual time """
         P = np.zeros(self._nbodies)
         for i_body in range(self._nbodies):
             P[i_body] = self._P[i_body].get(t)

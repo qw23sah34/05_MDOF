@@ -11,9 +11,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib.patches import ConnectionPatch
 
 class AnimatedBodies:
-    """
-    Stores information for all animated artists.
-    """
+    """ Stores information for all animated artists. """
+
     # Class variables
     _artist_colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", 
                       "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan"]
@@ -115,9 +114,7 @@ class AnimatedBodies:
                                   zorder=999.0)
         
     def get_ds_xy(self, i_ds, i):
-        """
-        Returns damped spring x and y position for plotting.
-        """
+        """ Returns damped spring x and y position for plotting. """
         body_nr = self._ds_cpl[i_ds][0]
         y1 = self._Y[i,body_nr]
         coupl_nr = self._ds_cpl[i_ds][1]
@@ -138,9 +135,9 @@ class AnimatedBodies:
 
 
     def update(self, i):
-        """
-        Holds animation function. Here, all artists are updated 
-        for each frame, then they are returned.
+        """ Holds animation function. 
+        
+        Here, all artists are updated for each frame, then they are returned.
         """
         # Update all mass bodies artists.
         for i_body, body_artist in enumerate(self._m_artist):
@@ -164,9 +161,7 @@ class AnimatedBodies:
 
 
 def animate_results(inp_data, Y):
-    """
-    Creates and returns animation based on the simulation results and user input
-    """
+    """ Creates and returns animation """
     fig = plt.figure(tight_layout=True, figsize=(16,9))
     gs = gridspec.GridSpec(1, 2)
     gs.set_width_ratios((1,5))

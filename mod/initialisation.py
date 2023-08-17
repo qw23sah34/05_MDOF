@@ -9,12 +9,14 @@ import numpy as np
 
 
 class MassBody:
-    """
-    Contains information about mass body, such as:
+    """ Contains information about mass body
+
+    Information includes:
       - body properties
       - its initial conditions
       - all couplings defined for that body (coupling = spring-damper)
     """
+
     def __init__(self):
         self.m = 0.0    # [kg] mass
         self.No = 0     # [-] body number
@@ -29,11 +31,12 @@ class MassBody:
 
 
 class ForceFunction:
+    """ Contains methods and variables to store the force function
+
+    At the end a force function results in time span array and force values 
+    array, corresponding to that time span.
     """
-    Contains methods and variables to store the force function. At the end 
-    a force function results in time span array and force values array, 
-    corresponding to that time span.
-    """
+
     def __init__(self):
         self._P_array = []
         self._time = []
@@ -70,9 +73,7 @@ class ForceFunction:
         return np.interp(t, self._time, self._P_array)
     
     def __setattr__(self, name, value):
-        """
-        Check the correctness of force definition dictionary.
-        """
+        """ Check the correctness of force definition dictionary. """
         super().__setattr__(name, value)
         if name != "_force_def":
             return
@@ -120,9 +121,8 @@ class ForceFunction:
 
 
 class InputData:
-    """
-    Class for storing, parsing and initialising of all necessary data.
-    """
+    """ Class for storing, parsing and initialising of all necessary data. """
+
     def __init__(self, filename):
         #
         _sim_active = False
@@ -249,10 +249,7 @@ class InputData:
         _file.close()
 
     def couple_bodies(self):
-        """ 
-        Couple bodies and calculate coupled mass, 
-        stiffness and damping matrices
-        """
+        """ Calculate coupled mass, stiffness and damping matrices """
         _nbodies = len(self.bodies)
         self.M = np.zeros((_nbodies,_nbodies), dtype=float)
         self.C = np.zeros((_nbodies,_nbodies), dtype=float)
@@ -311,9 +308,7 @@ class InputData:
                     self.K[k,i] = self.K[i,k]
 
     def get_init_cond(self):
-        """
-        Return initial conditions for all bodies.
-        """
+        """ Return initial conditions for all bodies. """
         v_0 = np.zeros(self.n_bodies, dtype=float)
         x_0 = np.zeros(self.n_bodies, dtype=float)
         for i_body, body in enumerate(self.bodies):
@@ -322,9 +317,7 @@ class InputData:
         return v_0, x_0
     
     def get_force_array(self):
-        """
-        Return array with force functions for all bodies
-        """
+        """Return array with force functions for all bodies"""
         P_arr = []
         for body in self.bodies:
             P_arr.append(body.P)

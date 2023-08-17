@@ -59,8 +59,6 @@ def main():
     # forward step numerical integration scheme, one obtain:
     P_dumm = np.zeros([inp_data.n_tsteps, inp_data.n_bodies])
     for i, t in enumerate(inp_data.time):
-        if t > 8.3:
-            adasd = 0
         if i > 0:
             Y[i,:,:] = Y[i-1,:,:] + RK4.evaluate(Y[i-1,:,0], Y[i-1,:,1], t)
             for ib in range(inp_data.n_bodies):
